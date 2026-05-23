@@ -1,4 +1,5 @@
 package UI;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -6,201 +7,227 @@ import java.awt.event.*;
 import java.io.IOException;
 import Modelo.*;
 
-/**
- * Ventana principal de la aplicación.
- * Contiene el sidebar de navegación y el panel de contenido.
- * Carga datos reales desde los CSV.
- */
 public class MainWindow extends JFrame {
 
-    private JPanel sidebarPanel;
     private JPanel contentPanel;
-    private JButton toggleSidebarBtn;
-    private boolean sidebarVisible = true;
     private DashboardPanel dashboardPanel;
     private Empresa empresa;
-    private static final int SIDEBAR_WIDTH = 250;
-    private static final int SIDEBAR_COLLAPSED = 60;
+    private JButton activeButton = null;
+
+    // Saved nav-button references so dashboard can trigger setActive
+    private JButton btnDash;
+    private JButton btnIngresos;
+    private JButton btnGastos;
+    private JButton btnEmpleados;
+    private JButton btnNomina;
+    private JButton btnReportes;
+
+    private static final Color BG_SIDEBAR    = new Color(22, 22, 28);
+    private static final Color BG_NAV_HOVER  = new Color(36, 36, 50);
+    private static final Color BG_NAV_ACTIVE = new Color(35, 60, 110);
+    private static final Color TEXT_NAV      = new Color(130, 130, 145);
+    private static final Color TEXT_NAV_ACT  = new Color(150, 195, 255);
+    private static final Color TEXT_SECTION  = new Color(70, 70, 92);
+    private static final Color PRIMARY       = new Color(100, 150, 255);
+    private static final Color BORDER_SIDE   = new Color(40, 40, 55);
+    private static final Color BG_CONTENT    = new Color(28, 28, 32);
 
     public MainWindow() {
-        setTitle("Finanz - Gestión Financiera");
-        setSize(1400, 800);
+        setTitle("Finanz");
+        setSize(1300, 760);
         setMinimumSize(new Dimension(900, 600));
         setLocationRelativeTo(null);
+        setBackground(BG_CONTENT);
 
-        // Cargar datos desde CSV
         cargarDatos();
 
-        // Panel principal
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(30, 30, 35));
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG_CONTENT);
 
-        // Sidebar
-        sidebarPanel = createSidebar();
-        mainPanel.add(sidebarPanel, BorderLayout.WEST);
+        root.add(buildSidebar(), BorderLayout.WEST);
 
-        // Contenido
         contentPanel = new JPanel(new CardLayout());
-        contentPanel.setBackground(new Color(40, 40, 45));
+        contentPanel.setBackground(BG_CONTENT);
 
         dashboardPanel = new DashboardPanel(empresa);
-        contentPanel.add(dashboardPanel, "Dashboard");
-        contentPanel.add(new IngresosPanel(), "Ingresos");
-        contentPanel.add(new GastosPanel(), "Gastos");
-        contentPanel.add(new EmpleadosPanel(), "Empleados");
-        contentPanel.add(new NominaPanel(), "Nomina");
-        contentPanel.add(new ReportesPanel(), "Reportes");
+        contentPanel.add(dashboardPanel,              "Dashboard");
+        contentPanel.add(new IngresosPanel(empresa),  "Ingresos");
+        contentPanel.add(new GastosPanel(empresa),    "Gastos");
+        contentPanel.add(new EmpleadosPanel(empresa), "Empleados");
+        contentPanel.add(new NominaPanel(empresa),    "Nomina");
+        contentPanel.add(new ReportesPanel(empresa),  "Reportes");
 
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        // Wire dashboard nav links
+        dashboardPanel.setNavHandlers(
+            () -> { setActive(btnReportes);  switchPanel("Reportes");  },
+            () -> { setActive(btnEmpleados); switchPanel("Empleados"); }
+        );
 
-        add(mainPanel);
+        root.add(contentPanel, BorderLayout.CENTER);
+        add(root);
     }
 
-    /**
-     * Carga datos desde los archivos CSV.
-     */
     private void cargarDatos() {
         try {
             empresa = new Empresa("Tech PYME S.A.S", "900-123-456-7");
             GestorArchivos.cargarEmpresa(empresa);
-            System.out.println("[MainWindow] Datos cargados correctamente.");
-            System.out.println("  - Empleados: " + empresa.getEmpleados().size());
-            System.out.println("  - Transacciones: " + empresa.getTransacciones().size());
         } catch (IOException e) {
-            System.err.println("[MainWindow] Error al cargar datos: " + e.getMessage());
-            // Crear empresa vacía como fallback
             empresa = new Empresa("Tech PYME S.A.S", "900-123-456-7");
         }
     }
 
-    /**
-     * Crea el panel del sidebar con navegación.
-     */
-    private JPanel createSidebar() {
+    private JPanel buildSidebar() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(SIDEBAR_WIDTH, getHeight()));
-        sidebar.setBackground(new Color(25, 25, 30));
-        sidebar.setBorder(new EmptyBorder(20, 15, 20, 15));
+        sidebar.setBackground(BG_SIDEBAR);
+        sidebar.setPreferredSize(new Dimension(190, getHeight()));
+        sidebar.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 0, 1, BORDER_SIDE),
+                new EmptyBorder(24, 0, 24, 0)));
 
-        // Header con logo
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(25, 25, 30));
-        headerPanel.setMaximumSize(new Dimension(SIDEBAR_WIDTH, 50));
+        // ── Logo ──────────────────────────────────────────────────────────────
+        JPanel logoPanel = new JPanel(new BorderLayout(10, 0));
+        logoPanel.setBackground(BG_SIDEBAR);
+        logoPanel.setBorder(new EmptyBorder(0, 18, 24, 18));
+        logoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-        JLabel logoLabel = new JLabel("◻ Finanz");
-        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        logoLabel.setForeground(new Color(200, 200, 200));
+        JLabel logoIcon = new JLabel("◈", SwingConstants.CENTER) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(35, 55, 95));
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        logoIcon.setPreferredSize(new Dimension(38, 38));
+        logoIcon.setMinimumSize(new Dimension(38, 38));
+        logoIcon.setMaximumSize(new Dimension(38, 38));
+        logoIcon.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        logoIcon.setForeground(new Color(150, 195, 255));
+        logoIcon.setOpaque(false);
 
-        toggleSidebarBtn = new JButton("☰");
-        toggleSidebarBtn.setFont(new Font("Arial", Font.PLAIN, 16));
-        toggleSidebarBtn.setPreferredSize(new Dimension(35, 35));
-        toggleSidebarBtn.setOpaque(false);
-        toggleSidebarBtn.setContentAreaFilled(false);
-        toggleSidebarBtn.setBorderPainted(false);
-        toggleSidebarBtn.setForeground(new Color(150, 150, 150));
-        toggleSidebarBtn.addActionListener(e -> toggleSidebar());
+        JPanel logoText = new JPanel(new BorderLayout());
+        logoText.setBackground(BG_SIDEBAR);
+        JLabel logoName = new JLabel("Finanz");
+        logoName.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        logoName.setForeground(new Color(225, 225, 230));
+        JLabel logoSub = new JLabel("Gestión financiera");
+        logoSub.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        logoSub.setForeground(TEXT_SECTION);
+        logoText.add(logoName, BorderLayout.NORTH);
+        logoText.add(logoSub, BorderLayout.SOUTH);
 
-        headerPanel.add(logoLabel, BorderLayout.WEST);
-        headerPanel.add(toggleSidebarBtn, BorderLayout.EAST);
-        sidebar.add(headerPanel);
-        sidebar.add(Box.createVerticalStrut(20));
+        logoPanel.add(logoIcon, BorderLayout.WEST);
+        logoPanel.add(logoText, BorderLayout.CENTER);
+        sidebar.add(logoPanel);
 
-        // Sección PRINCIPAL
-        sidebar.add(createSectionLabel("PRINCIPAL"));
-        sidebar.add(createNavButton("Dashboard", "[D]", () -> switchPanel("Dashboard")));
-        sidebar.add(createNavButton("Ingresos", "[+]", () -> switchPanel("Ingresos")));
-        sidebar.add(createNavButton("Gastos", "[-]", () -> switchPanel("Gastos")));
+        sidebar.add(makeSeparator());
+        sidebar.add(Box.createVerticalStrut(14));
 
-        sidebar.add(Box.createVerticalStrut(20));
+        // ── PRINCIPAL ─────────────────────────────────────────────────────────
+        sidebar.add(makeSectionLabel("PRINCIPAL"));
+        btnDash     = makeNavBtn("◆", "Dashboard", "Dashboard");
+        btnIngresos = makeNavBtn("↑", "Ingresos",  "Ingresos");
+        btnGastos   = makeNavBtn("↓", "Gastos",    "Gastos");
+        sidebar.add(btnDash);
+        sidebar.add(btnIngresos);
+        sidebar.add(btnGastos);
 
-        // Sección EMPRESA
-        sidebar.add(createSectionLabel("EMPRESA"));
-        sidebar.add(createNavButton("Empleados", "[E]", () -> switchPanel("Empleados")));
-        sidebar.add(createNavButton("Nómina", "[N]", () -> switchPanel("Nomina")));
+        sidebar.add(Box.createVerticalStrut(8));
+        sidebar.add(makeSeparator());
+        sidebar.add(Box.createVerticalStrut(8));
 
-        sidebar.add(Box.createVerticalStrut(20));
+        // ── EMPRESA ───────────────────────────────────────────────────────────
+        sidebar.add(makeSectionLabel("EMPRESA"));
+        btnEmpleados = makeNavBtn("◉", "Empleados", "Empleados");
+        btnNomina    = makeNavBtn("≡", "Nómina",    "Nomina");
+        sidebar.add(btnEmpleados);
+        sidebar.add(btnNomina);
 
-        // Sección ANÁLISIS
-        sidebar.add(createSectionLabel("ANÁLISIS"));
-        sidebar.add(createNavButton("Reportes", "[R]", () -> switchPanel("Reportes")));
+        sidebar.add(Box.createVerticalStrut(8));
+        sidebar.add(makeSeparator());
+        sidebar.add(Box.createVerticalStrut(8));
+
+        // ── ANÁLISIS ──────────────────────────────────────────────────────────
+        sidebar.add(makeSectionLabel("ANÁLISIS"));
+        btnReportes = makeNavBtn("◈", "Reportes", "Reportes");
+        sidebar.add(btnReportes);
 
         sidebar.add(Box.createVerticalGlue());
 
-        // Footer
-        JLabel versionLabel = new JLabel("v1.0");
-        versionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        versionLabel.setForeground(new Color(100, 100, 100));
-        sidebar.add(versionLabel);
+        JLabel ver = new JLabel("v1.0");
+        ver.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        ver.setForeground(TEXT_SECTION);
+        ver.setBorder(new EmptyBorder(0, 18, 0, 0));
+        sidebar.add(ver);
 
+        setActive(btnDash);
         return sidebar;
     }
 
-    /**
-     * Crea una etiqueta de sección.
-     */
-    private JLabel createSectionLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        label.setForeground(new Color(120, 120, 130));
-        label.setMaximumSize(new Dimension(Short.MAX_VALUE, 20));
-        return label;
-    }
-
-    /**
-     * Crea un botón de navegación.
-     */
-    private JButton createNavButton(String text, String icon, Runnable action) {
-        JButton btn = new JButton(icon + " " + text);
+    private JButton makeNavBtn(String icon, String label, String panelKey) {
+        JButton btn = new JButton(icon + "  " + label);
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btn.setForeground(new Color(180, 180, 190));
-        btn.setBackground(new Color(40, 40, 50));
+        btn.setForeground(TEXT_NAV);
+        btn.setBackground(BG_SIDEBAR);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setContentAreaFilled(true);
-        btn.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        btn.setBorder(new EmptyBorder(0, 18, 0, 18));
 
         btn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(60, 60, 75));
+            @Override public void mouseEntered(MouseEvent e) {
+                if (btn != activeButton) btn.setBackground(BG_NAV_HOVER);
             }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(new Color(40, 40, 50));
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                action.run();
+            @Override public void mouseExited(MouseEvent e) {
+                if (btn != activeButton) btn.setBackground(BG_SIDEBAR);
             }
         });
 
-        btn.addActionListener(e -> action.run());
+        btn.addActionListener(e -> {
+            setActive(btn);
+            switchPanel(panelKey);
+        });
+
         return btn;
     }
 
-    /**
-     * Cambia al panel especificado.
-     */
-    private void switchPanel(String panelName) {
-        CardLayout cl = (CardLayout) contentPanel.getLayout();
-        cl.show(contentPanel, panelName);
+    void setActive(JButton btn) {
+        if (activeButton != null) {
+            activeButton.setBackground(BG_SIDEBAR);
+            activeButton.setForeground(TEXT_NAV);
+            activeButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        }
+        activeButton = btn;
+        btn.setBackground(BG_NAV_ACTIVE);
+        btn.setForeground(TEXT_NAV_ACT);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
     }
 
-    /**
-     * Alterna la visibilidad del sidebar.
-     */
-    private void toggleSidebar() {
-        sidebarVisible = !sidebarVisible;
-        Dimension newSize = sidebarVisible ?
-                new Dimension(SIDEBAR_WIDTH, sidebarPanel.getHeight()) :
-                new Dimension(SIDEBAR_COLLAPSED, sidebarPanel.getHeight());
-        sidebarPanel.setPreferredSize(newSize);
-        sidebarPanel.revalidate();
-        repaint();
+    private void switchPanel(String name) {
+        CardLayout cl = (CardLayout) contentPanel.getLayout();
+        cl.show(contentPanel, name);
+        if (name.equals("Dashboard")) dashboardPanel.refrescar(empresa);
+    }
+
+    private JLabel makeSectionLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lbl.setForeground(TEXT_SECTION);
+        lbl.setBorder(new EmptyBorder(4, 18, 6, 18));
+        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        return lbl;
+    }
+
+    private JSeparator makeSeparator() {
+        JSeparator sep = new JSeparator();
+        sep.setForeground(BORDER_SIDE);
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        return sep;
     }
 }

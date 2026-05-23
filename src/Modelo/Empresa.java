@@ -87,6 +87,16 @@ public class Empresa {
         transacciones.add(transaccion);
     }
 
+    /**
+     * Elimina una transacción de la empresa según su ID.
+     *
+     * @param id identificador de la transacción a eliminar
+     * @return {@code true} si fue eliminada, {@code false} si no se encontró
+     */
+    public boolean eliminarTransaccion(int id) {
+        return transacciones.removeIf(t -> t.getId() == id);
+    }
+
     // ── Métodos de Negocio ─────────────────────────────────────────────────────
 
     /**

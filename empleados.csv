@@ -1,9 +1,4 @@
 # tipo,id,nombre,documento,cargo,[salarioBase | tarifaHora,horasTrabajadas]
-FIJO,1,Ana García,1001234567,Gerente,4500000
-FIJO,2,Luis Martínez,1009876543,Contador,3200000
-HORAS,3,Sofía Ríos,1005551234,Diseñadora,35000,120
-HORAS,4,Juan Pérez,1007778899,Desarrollador,45000,160
-FIJO,5,María Ríos,1002234567,Contadora,3200000
-HORAS,6,Carlos López,1008234567,Diseñador,35000,28
-FIJO,7,Ana Pérez,1003234567,Vendedora,2400000
-HORAS,8,Jorge Torres,1004234567,Soporte,25000,25
+HORAS,2,Oscar,52879568,Gerente,5000.0,100.0
+FIJO,3,Ana perez,105489502,Gerente,5000000.0
+FIJO,4,Juan Jose,10,Soy,2500000.0

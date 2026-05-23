@@ -1,415 +1,438 @@
 package UI;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
-import java.io.IOException;
+import java.awt.event.*;
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import Modelo.*;
 
-/**
- * Panel del Dashboard - Vista principal con métricas y resumen financiero.
- * Conectado a datos reales de la empresa.
- */
 public class DashboardPanel extends JPanel {
 
     private Empresa empresa;
+    private Runnable onVerMovimientos;
+    private Runnable onGestionar;
 
-    public DashboardPanel() {
-        this(null);
-    }
+    private static final Color BG_MAIN      = new Color(28, 28, 32);
+    private static final Color BG_CARD      = new Color(38, 38, 44);
+    private static final Color BORDER_COLOR = new Color(60, 60, 70);
+    private static final Color TEXT_PRIMARY = new Color(225, 225, 230);
+    private static final Color TEXT_MUTED   = new Color(130, 130, 145);
+    private static final Color TEXT_SUBTLE  = new Color(85, 85, 100);
+    private static final Color COLOR_GREEN  = new Color(76, 175, 80);
+    private static final Color COLOR_RED    = new Color(229, 83, 75);
+    private static final Color ACCENT       = new Color(100, 150, 255);
+    private static final Color AMBER        = new Color(255, 183, 77);
+
+    public DashboardPanel() { this(null); }
 
     public DashboardPanel(Empresa empresa) {
         this.empresa = empresa;
-
         setLayout(new BorderLayout());
-        setBackground(new Color(40, 40, 45));
-        setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        // Header
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(40, 40, 45));
-        headerPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 60));
-
-        JLabel titleLabel = new JLabel("Dashboard");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        titleLabel.setForeground(new Color(220, 220, 230));
-
-        JLabel dateLabel = new JLabel("📅 " + LocalDate.now().getMonth());
-        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        dateLabel.setForeground(new Color(150, 150, 160));
-
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(dateLabel, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
-
-        // Contenido principal
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(new Color(40, 40, 45));
-        contentPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-        // Sección de métricas
-        contentPanel.add(createMetricsSection());
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Alerta de status
-        contentPanel.add(createStatusAlert());
-        contentPanel.add(Box.createVerticalStrut(20));
-
-        // Sección de movimientos y empleados
-        JPanel bottomSection = new JPanel(new GridLayout(1, 2, 20, 0));
-        bottomSection.setBackground(new Color(40, 40, 45));
-        bottomSection.setMaximumSize(new Dimension(Short.MAX_VALUE, 300));
-
-        bottomSection.add(createMovementsPanel());
-        bottomSection.add(createEmployeesPanel());
-
-        contentPanel.add(bottomSection);
-        contentPanel.add(Box.createVerticalGlue());
-
-        JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBackground(new Color(40, 40, 45));
-        scrollPane.getViewport().setBackground(new Color(40, 40, 45));
-        scrollPane.setBorder(null);
-        add(scrollPane, BorderLayout.CENTER);
+        setBackground(BG_MAIN);
+        build();
     }
 
-    /**
-     * Crea la sección de métricas (4 cards) con datos reales.
-     */
-    private JPanel createMetricsSection() {
-        JPanel metricsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
-        metricsPanel.setBackground(new Color(40, 40, 45));
-        metricsPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 140));
-
-        if (empresa != null) {
-            double totalIngresos = 0;
-            double totalGastos = 0;
-            double costoNomina = 0;
-
-            // Calcular totales
-            for (Transaccion t : empresa.getTransacciones()) {
-                if (t instanceof Ingreso) {
-                    totalIngresos += t.getMonto();
-                } else if (t instanceof Gasto) {
-                    totalGastos += t.getMonto();
-                }
-            }
-
-            for (Empleado e : empresa.getEmpleados()) {
-                costoNomina += e.calcularSalario();
-            }
-
-            double balance = totalIngresos - totalGastos;
-
-            metricsPanel.add(createMetricCard("Ingresos totales", formatearMoneda(totalIngresos), "$", new Color(76, 175, 80)));
-            metricsPanel.add(createMetricCard("Gastos totales", formatearMoneda(totalGastos), "$", new Color(244, 67, 54)));
-            metricsPanel.add(createMetricCard("Costo nómina", formatearMoneda(costoNomina), "$", new Color(158, 158, 158)));
-            metricsPanel.add(createMetricCard("Balance", formatearMoneda(balance), "✓", balance >= 0 ? new Color(76, 175, 80) : new Color(244, 67, 54)));
-        } else {
-            metricsPanel.add(createMetricCard("Ingresos totales", "$0", "$", new Color(76, 175, 80)));
-            metricsPanel.add(createMetricCard("Gastos totales", "$0", "$", new Color(244, 67, 54)));
-            metricsPanel.add(createMetricCard("Costo nómina", "$0", "$", new Color(158, 158, 158)));
-            metricsPanel.add(createMetricCard("Balance", "$0", "✓", new Color(76, 175, 80)));
-        }
-
-        return metricsPanel;
+    public void setNavHandlers(Runnable verMovimientos, Runnable gestionar) {
+        this.onVerMovimientos = verMovimientos;
+        this.onGestionar = gestionar;
     }
 
-    /**
-     * Crea una card de métrica individual.
-     */
-    private JPanel createMetricCard(String title, String value, String icon, Color accentColor) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(new Color(55, 55, 65));
-        card.setBorder(new CompoundBorder(
-                new LineBorder(new Color(70, 70, 80), 1, true),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
-
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(new Color(55, 55, 65));
-
-        JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        iconLabel.setForeground(accentColor);
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        titleLabel.setForeground(new Color(150, 150, 160));
-
-        topPanel.add(iconLabel, BorderLayout.WEST);
-        topPanel.add(titleLabel, BorderLayout.CENTER);
-
-        JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        valueLabel.setForeground(new Color(220, 220, 230));
-
-        card.add(topPanel, BorderLayout.NORTH);
-        card.add(valueLabel, BorderLayout.CENTER);
-
-        return card;
-    }
-
-    /**
-     * Crea la alerta de estado financiero.
-     */
-    private JPanel createStatusAlert() {
-        JPanel alertPanel = new JPanel(new BorderLayout(10, 0));
-
-        double balance = 0;
-        if (empresa != null) {
-            balance = empresa.calcularBalance();
-        }
-
-        boolean superavit = balance >= 0;
-        Color bgColor = superavit ? new Color(76, 175, 80, 20) : new Color(244, 67, 54, 20);
-        Color borderColor = superavit ? new Color(76, 175, 80, 80) : new Color(244, 67, 54, 80);
-        Color textColor = superavit ? new Color(76, 175, 80) : new Color(244, 67, 54);
-        String estado = superavit ? "Superávit" : "Déficit";
-
-        alertPanel.setBackground(bgColor);
-        alertPanel.setBorder(new CompoundBorder(
-                new LineBorder(borderColor, 1, true),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
-        alertPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 70));
-
-        JLabel statusIcon = new JLabel("✓ " + estado);
-        statusIcon.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        statusIcon.setOpaque(true);
-        statusIcon.setBackground(textColor);
-        statusIcon.setForeground(Color.WHITE);
-        statusIcon.setBorder(new EmptyBorder(5, 10, 5, 10));
-        statusIcon.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-
-        String mensaje = superavit ?
-                "La empresa está en superávit este período. Los ingresos superan los gastos." :
-                "La empresa está en déficit. Los gastos superan los ingresos.";
-
-        JLabel messageLabel = new JLabel(mensaje);
-        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        messageLabel.setForeground(new Color(180, 200, 180));
-
-        alertPanel.add(statusIcon, BorderLayout.WEST);
-        alertPanel.add(messageLabel, BorderLayout.CENTER);
-
-        return alertPanel;
-    }
-
-    /**
-     * Crea el panel de últimos movimientos con datos reales.
-     */
-    private JPanel createMovementsPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(55, 55, 65));
-        panel.setBorder(new CompoundBorder(
-                new LineBorder(new Color(70, 70, 80), 1, true),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
-
-        JLabel titleLabel = new JLabel("Últimos movimientos");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        titleLabel.setForeground(new Color(220, 220, 230));
-
-        JLabel linkLabel = new JLabel("Ver todos →");
-        linkLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        linkLabel.setForeground(new Color(100, 150, 255));
-        linkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(55, 55, 65));
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(linkLabel, BorderLayout.EAST);
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        JPanel movementsListPanel = new JPanel();
-        movementsListPanel.setLayout(new BoxLayout(movementsListPanel, BoxLayout.Y_AXIS));
-        movementsListPanel.setBackground(new Color(55, 55, 65));
-        movementsListPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-
-        if (empresa != null && !empresa.getTransacciones().isEmpty()) {
-            // Mostrar últimas 4 transacciones
-            List<Transaccion> transacciones = empresa.getTransacciones();
-            int inicio = Math.max(0, transacciones.size() - 4);
-
-            for (int i = transacciones.size() - 1; i >= inicio; i--) {
-                Transaccion t = transacciones.get(i);
-                String icon = t instanceof Ingreso ? "📈" : "📉";
-                Color color = t instanceof Ingreso ? new Color(76, 175, 80) : new Color(244, 67, 54);
-                movementsListPanel.add(createMovementItem(icon, t.getDescripcion(),
-                        t.getFecha() + " · " + t.getCategoria(),
-                        (t instanceof Ingreso ? "+" : "-") + formatearMoneda(t.getMonto()), color));
-                if (i > inicio) {
-                    movementsListPanel.add(Box.createVerticalStrut(10));
-                }
-            }
-        }
-
-        panel.add(movementsListPanel, BorderLayout.CENTER);
-        return panel;
-    }
-
-    /**
-     * Crea un item de movimiento.
-     */
-    private JPanel createMovementItem(String icon, String title, String info, String amount, Color amountColor) {
-        JPanel item = new JPanel(new BorderLayout(10, 0));
-        item.setBackground(new Color(55, 55, 65));
-        item.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
-
-        JLabel iconLabel = new JLabel(icon);
-        iconLabel.setFont(new Font("Arial", Font.PLAIN, 18));
-        iconLabel.setPreferredSize(new Dimension(35, 35));
-
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(new Color(55, 55, 65));
-
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        titleLabel.setForeground(new Color(220, 220, 230));
-
-        JLabel infoLabel = new JLabel(info);
-        infoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        infoLabel.setForeground(new Color(120, 120, 130));
-
-        infoPanel.add(titleLabel, BorderLayout.NORTH);
-        infoPanel.add(infoLabel, BorderLayout.SOUTH);
-
-        JLabel amountLabel = new JLabel(amount);
-        amountLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        amountLabel.setForeground(amountColor);
-
-        item.add(iconLabel, BorderLayout.WEST);
-        item.add(infoPanel, BorderLayout.CENTER);
-        item.add(amountLabel, BorderLayout.EAST);
-
-        return item;
-    }
-
-    /**
-     * Crea el panel de empleados activos con datos reales.
-     */
-    private JPanel createEmployeesPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(55, 55, 65));
-        panel.setBorder(new CompoundBorder(
-                new LineBorder(new Color(70, 70, 80), 1, true),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
-
-        JLabel titleLabel = new JLabel("Empleados activos");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        titleLabel.setForeground(new Color(220, 220, 230));
-
-        JLabel linkLabel = new JLabel("Gestionar →");
-        linkLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        linkLabel.setForeground(new Color(100, 150, 255));
-        linkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(55, 55, 65));
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(linkLabel, BorderLayout.EAST);
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-
-        JPanel employeesListPanel = new JPanel();
-        employeesListPanel.setLayout(new BoxLayout(employeesListPanel, BoxLayout.Y_AXIS));
-        employeesListPanel.setBackground(new Color(55, 55, 65));
-        employeesListPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-
-        if (empresa != null && !empresa.getEmpleados().isEmpty()) {
-            List<Empleado> empleados = empresa.getEmpleados();
-            int limite = Math.min(4, empleados.size());
-
-            for (int i = 0; i < limite; i++) {
-                Empleado e = empleados.get(i);
-                String initials = e.getNombre().replaceAll("[a-z ]", "");
-                String type = e instanceof EmpleadoFijo ? "Fijo" : "Por horas";
-                String salary = formatearMoneda(e.calcularSalario());
-
-                employeesListPanel.add(createEmployeeItem(initials, e.getNombre(), e.getCargo(), type, salary));
-                if (i < limite - 1) {
-                    employeesListPanel.add(Box.createVerticalStrut(10));
-                }
-            }
-        }
-
-        panel.add(employeesListPanel, BorderLayout.CENTER);
-        return panel;
-    }
-
-    /**
-     * Crea un item de empleado.
-     */
-    private JPanel createEmployeeItem(String initials, String name, String role, String type, String salary) {
-        JPanel item = new JPanel(new BorderLayout(10, 0));
-        item.setBackground(new Color(55, 55, 65));
-        item.setMaximumSize(new Dimension(Short.MAX_VALUE, 45));
-
-        JLabel avatarLabel = new JLabel(initials);
-        avatarLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        avatarLabel.setForeground(Color.WHITE);
-        avatarLabel.setBackground(new Color(150, 150, 160));
-        avatarLabel.setOpaque(true);
-        avatarLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        avatarLabel.setPreferredSize(new Dimension(40, 40));
-        avatarLabel.setBorder(new EmptyBorder(0, 0, 0, 0));
-
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.setBackground(new Color(55, 55, 65));
-
-        JLabel nameLabel = new JLabel(name);
-        nameLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        nameLabel.setForeground(new Color(220, 220, 230));
-
-        JPanel detailsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        detailsPanel.setBackground(new Color(55, 55, 65));
-
-        JLabel roleLabel = new JLabel(role);
-        roleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        roleLabel.setForeground(new Color(120, 120, 130));
-
-        JLabel typeLabel = new JLabel(type);
-        typeLabel.setFont(new Font("Segoe UI", Font.PLAIN, 9));
-        typeLabel.setForeground(Color.WHITE);
-        typeLabel.setBackground(new Color(255, 152, 0));
-        typeLabel.setOpaque(true);
-        typeLabel.setBorder(new EmptyBorder(2, 6, 2, 6));
-
-        detailsPanel.add(roleLabel);
-        detailsPanel.add(typeLabel);
-
-        infoPanel.add(nameLabel, BorderLayout.NORTH);
-        infoPanel.add(detailsPanel, BorderLayout.SOUTH);
-
-        JLabel salaryLabel = new JLabel(salary);
-        salaryLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        salaryLabel.setForeground(new Color(200, 200, 200));
-
-        item.add(avatarLabel, BorderLayout.WEST);
-        item.add(infoPanel, BorderLayout.CENTER);
-        item.add(salaryLabel, BorderLayout.EAST);
-
-        return item;
-    }
-
-    /**
-     * Formatea un número como moneda.
-     */
-    private String formatearMoneda(double valor) {
-        return String.format("$%,.0f", valor);
-    }
-
-    /**
-     * Establece la empresa para cargar datos.
-     */
-    public void setEmpresa(Empresa empresa) {
-        this.empresa = empresa;
+    public void refrescar(Empresa emp) {
+        this.empresa = emp;
+        removeAll();
+        build();
         revalidate();
         repaint();
     }
+
+    private void build() {
+        setBorder(new EmptyBorder(28, 28, 28, 28));
+
+        // ── Header ──────────────────────────────────────────────────────────
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(BG_MAIN);
+        header.setBorder(new EmptyBorder(0, 0, 22, 0));
+
+        JLabel titleLabel = new JLabel("◆  Dashboard");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(TEXT_PRIMARY);
+
+        String mes = LocalDate.now().getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "CO"));
+        mes = Character.toUpperCase(mes.charAt(0)) + mes.substring(1);
+        JLabel datePill = makePill(mes + " " + LocalDate.now().getYear());
+
+        header.add(titleLabel, BorderLayout.WEST);
+        header.add(datePill, BorderLayout.EAST);
+        add(header, BorderLayout.NORTH);
+
+        // ── Scrollable content ───────────────────────────────────────────────
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(BG_MAIN);
+
+        content.add(buildMetricsRow());
+        content.add(Box.createVerticalStrut(16));
+        content.add(buildAlertBar());
+        content.add(Box.createVerticalStrut(16));
+
+        JPanel bottom = new JPanel(new GridLayout(1, 2, 18, 0));
+        bottom.setBackground(BG_MAIN);
+        bottom.setMaximumSize(new Dimension(Integer.MAX_VALUE, 400));
+        bottom.add(buildMovementsCard());
+        bottom.add(buildEmployeesCard());
+        content.add(bottom);
+        content.add(Box.createVerticalGlue());
+
+        JScrollPane scroll = new JScrollPane(content);
+        scroll.setBorder(null);
+        scroll.setBackground(BG_MAIN);
+        scroll.getViewport().setBackground(BG_MAIN);
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        add(scroll, BorderLayout.CENTER);
+    }
+
+    // ── Metric cards ─────────────────────────────────────────────────────────
+
+    private JPanel buildMetricsRow() {
+        double ingresos = 0, gastos = 0, nomina = 0;
+        if (empresa != null) {
+            for (Transaccion t : empresa.getTransacciones()) {
+                if (t instanceof Ingreso) ingresos += t.getMonto();
+                else                      gastos   += t.getMonto();
+            }
+            for (Empleado e : empresa.getEmpleados()) nomina += e.calcularSalario();
+        }
+        double balance = ingresos - gastos;
+
+        JPanel row = new JPanel(new GridLayout(1, 4, 14, 0));
+        row.setBackground(BG_MAIN);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 108));
+        row.add(metricCard("↑", "Ingresos totales", fmt(ingresos), COLOR_GREEN));
+        row.add(metricCard("↓", "Gastos totales",   fmt(gastos),   COLOR_RED));
+        row.add(metricCard("◉", "Costo nómina",     fmt(nomina),   TEXT_MUTED));
+        row.add(metricCard("≈", "Balance",          fmt(balance),  balance >= 0 ? COLOR_GREEN : COLOR_RED));
+        return row;
+    }
+
+    private JPanel metricCard(String icon, String title, String value, Color accent) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(BG_CARD);
+        card.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(16, 18, 16, 18)));
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        top.setBackground(BG_CARD);
+        JLabel dot = new JLabel(icon);
+        dot.setForeground(accent);
+        dot.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JLabel lbl = new JLabel(title);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lbl.setForeground(TEXT_MUTED);
+        top.add(dot);
+        top.add(lbl);
+
+        JLabel val = new JLabel(value);
+        val.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        val.setForeground(accent);
+        val.setBorder(new EmptyBorder(6, 0, 0, 0));
+
+        card.add(top, BorderLayout.NORTH);
+        card.add(val, BorderLayout.CENTER);
+        return card;
+    }
+
+    // ── Alert bar ────────────────────────────────────────────────────────────
+
+    private JPanel buildAlertBar() {
+        double balance   = empresa != null ? empresa.calcularBalance() : 0;
+        boolean superavit = balance >= 0;
+
+        Color bg     = superavit ? new Color(76, 175, 80, 25)  : new Color(229, 83, 75, 25);
+        Color border = superavit ? new Color(76, 175, 80, 80)  : new Color(229, 83, 75, 80);
+        Color badge  = superavit ? COLOR_GREEN : COLOR_RED;
+        String texto = superavit
+                ? "La empresa está en superávit. Ingresos superan gastos en " + fmt(balance) + "."
+                : "La empresa está en déficit. Gastos superan ingresos en " + fmt(Math.abs(balance)) + ".";
+
+        JPanel alert = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        alert.setBackground(bg);
+        alert.setBorder(new CompoundBorder(
+                new LineBorder(border, 1, true),
+                new EmptyBorder(12, 14, 12, 14)));
+        alert.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+
+        JLabel badgeLbl = new JLabel(superavit ? "  Superávit  " : "  Déficit  ");
+        badgeLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        badgeLbl.setForeground(Color.WHITE);
+        badgeLbl.setBackground(badge);
+        badgeLbl.setOpaque(true);
+        badgeLbl.setBorder(new EmptyBorder(3, 8, 3, 8));
+
+        JLabel msg = new JLabel(texto);
+        msg.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        msg.setForeground(TEXT_PRIMARY);
+
+        alert.add(badgeLbl);
+        alert.add(msg);
+        return alert;
+    }
+
+    // ── Last movements ───────────────────────────────────────────────────────
+
+    private JPanel buildMovementsCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(BG_CARD);
+        card.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(18, 18, 18, 18)));
+
+        JPanel hdr = new JPanel(new BorderLayout());
+        hdr.setBackground(BG_CARD);
+        hdr.setBorder(new EmptyBorder(0, 0, 14, 0));
+        JLabel t = new JLabel("↕  Últimos movimientos");
+        t.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        t.setForeground(TEXT_PRIMARY);
+
+        JLabel link = new JLabel("Ver todos →");
+        link.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        link.setForeground(ACCENT);
+        link.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        link.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (onVerMovimientos != null) onVerMovimientos.run();
+            }
+            @Override public void mouseEntered(MouseEvent e) { link.setForeground(Color.WHITE); }
+            @Override public void mouseExited(MouseEvent e)  { link.setForeground(ACCENT); }
+        });
+
+        hdr.add(t, BorderLayout.WEST);
+        hdr.add(link, BorderLayout.EAST);
+        card.add(hdr, BorderLayout.NORTH);
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setBackground(BG_CARD);
+
+        if (empresa != null && !empresa.getTransacciones().isEmpty()) {
+            List<Transaccion> all = empresa.getTransacciones();
+            int start = Math.max(0, all.size() - 4);
+            for (int i = all.size() - 1; i >= start; i--) {
+                Transaccion tr = all.get(i);
+                boolean esIngreso = tr instanceof Ingreso;
+                Color iconBg = esIngreso ? new Color(25, 55, 25) : new Color(55, 25, 25);
+                Color iconFg = esIngreso ? COLOR_GREEN            : COLOR_RED;
+                String amount = (esIngreso ? "+" : "−") + fmt(tr.getMonto());
+                String info   = tr.getFecha().getDayOfMonth() + " "
+                        + tr.getFecha().getMonth().getDisplayName(TextStyle.SHORT, new Locale("es"))
+                        + " · " + tr.getCategoria();
+                list.add(buildMovementRow(tr.getDescripcion(), info, amount, iconBg, iconFg));
+                if (i > start) list.add(makeRowSep());
+            }
+        } else {
+            list.add(emptyLabel("Sin movimientos registrados"));
+        }
+        card.add(list, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel buildMovementRow(String title, String info, String amount,
+                                    Color iconBg, Color iconFg) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setBackground(BG_CARD);
+        row.setBorder(new EmptyBorder(9, 0, 9, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+
+        JLabel icon = new JLabel(iconFg.equals(COLOR_GREEN) ? "+" : "−", SwingConstants.CENTER);
+        icon.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        icon.setForeground(iconFg);
+        icon.setBackground(iconBg);
+        icon.setOpaque(true);
+        icon.setPreferredSize(new Dimension(32, 32));
+        icon.setBorder(new LineBorder(iconBg, 1, true));
+
+        JPanel info2 = new JPanel(new BorderLayout());
+        info2.setBackground(BG_CARD);
+        JLabel tl = new JLabel(title);
+        tl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tl.setForeground(TEXT_PRIMARY);
+        JLabel il = new JLabel(info);
+        il.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        il.setForeground(TEXT_MUTED);
+        info2.add(tl, BorderLayout.NORTH);
+        info2.add(il, BorderLayout.SOUTH);
+
+        JLabel amt = new JLabel(amount);
+        amt.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        amt.setForeground(iconFg);
+
+        row.add(icon, BorderLayout.WEST);
+        row.add(info2, BorderLayout.CENTER);
+        row.add(amt, BorderLayout.EAST);
+        return row;
+    }
+
+    // ── Active employees ─────────────────────────────────────────────────────
+
+    private JPanel buildEmployeesCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(BG_CARD);
+        card.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(18, 18, 18, 18)));
+
+        JPanel hdr = new JPanel(new BorderLayout());
+        hdr.setBackground(BG_CARD);
+        hdr.setBorder(new EmptyBorder(0, 0, 14, 0));
+        JLabel t = new JLabel("◉  Empleados activos");
+        t.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        t.setForeground(TEXT_PRIMARY);
+
+        JLabel link = new JLabel("Gestionar →");
+        link.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        link.setForeground(ACCENT);
+        link.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        link.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (onGestionar != null) onGestionar.run();
+            }
+            @Override public void mouseEntered(MouseEvent e) { link.setForeground(Color.WHITE); }
+            @Override public void mouseExited(MouseEvent e)  { link.setForeground(ACCENT); }
+        });
+
+        hdr.add(t, BorderLayout.WEST);
+        hdr.add(link, BorderLayout.EAST);
+        card.add(hdr, BorderLayout.NORTH);
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setBackground(BG_CARD);
+
+        if (empresa != null && !empresa.getEmpleados().isEmpty()) {
+            List<Empleado> emps = empresa.getEmpleados();
+            int limit = Math.min(4, emps.size());
+            for (int i = 0; i < limit; i++) {
+                Empleado e = emps.get(i);
+                boolean esFijo = e instanceof EmpleadoFijo;
+                list.add(buildEmployeeRow(e.getNombre(), e.getCargo(),
+                        esFijo ? "Fijo" : "Por horas", fmt(e.calcularSalario()), esFijo));
+                if (i < limit - 1) list.add(makeRowSep());
+            }
+        } else {
+            list.add(emptyLabel("Sin empleados registrados"));
+        }
+        card.add(list, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel buildEmployeeRow(String name, String role,
+                                    String type, String salary, boolean fijo) {
+        JPanel row = new JPanel(new BorderLayout(12, 0));
+        row.setBackground(BG_CARD);
+        row.setBorder(new EmptyBorder(9, 0, 9, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+
+        // Avatar circle
+        String initials = getInitials(name);
+        JLabel avatar = new JLabel(initials, SwingConstants.CENTER) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(35, 55, 95));
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        avatar.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        avatar.setForeground(ACCENT);
+        avatar.setOpaque(false);
+        avatar.setPreferredSize(new Dimension(32, 32));
+
+        // Name + type pill
+        JPanel center = new JPanel(new BorderLayout(6, 0));
+        center.setBackground(BG_CARD);
+
+        JPanel nameRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        nameRow.setBackground(BG_CARD);
+        JLabel nameLbl = new JLabel(name);
+        nameLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        nameLbl.setForeground(TEXT_PRIMARY);
+
+        JLabel badge = makePill(type);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        badge.setBackground(fijo ? new Color(25, 45, 85) : new Color(65, 50, 15));
+        badge.setForeground(fijo ? ACCENT : AMBER);
+        badge.setBorder(new EmptyBorder(2, 7, 2, 7));
+
+        nameRow.add(nameLbl);
+        nameRow.add(badge);
+
+        JLabel roleLbl = new JLabel(role);
+        roleLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        roleLbl.setForeground(TEXT_MUTED);
+
+        center.add(nameRow, BorderLayout.NORTH);
+        center.add(roleLbl, BorderLayout.SOUTH);
+
+        JLabel sal = new JLabel(salary);
+        sal.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        sal.setForeground(TEXT_PRIMARY);
+
+        row.add(avatar, BorderLayout.WEST);
+        row.add(center, BorderLayout.CENTER);
+        row.add(sal, BorderLayout.EAST);
+        return row;
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private JLabel makePill(String text) {
+        JLabel lbl = new JLabel(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), getHeight(), getHeight());
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        lbl.setOpaque(false);
+        lbl.setBackground(new Color(40, 55, 90));
+        lbl.setForeground(ACCENT);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lbl.setBorder(new CompoundBorder(
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(5, 11, 5, 11)));
+        return lbl;
+    }
+
+    private JSeparator makeRowSep() {
+        JSeparator sep = new JSeparator();
+        sep.setForeground(BORDER_COLOR);
+        sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        return sep;
+    }
+
+    private JLabel emptyLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setForeground(TEXT_MUTED);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        return lbl;
+    }
+
+    private String getInitials(String name) {
+        String[] parts = name.trim().split(" ");
+        if (parts.length >= 2) return ("" + parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        return name.substring(0, Math.min(2, name.length())).toUpperCase();
+    }
+
+    private String fmt(double v) { return String.format("$%,.0f", v); }
+
+    public void setEmpresa(Empresa e) { this.empresa = e; }
 }
