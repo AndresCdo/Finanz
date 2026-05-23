@@ -1,3 +1,5 @@
+package Modelo;
+
 /**
  * Representa un empleado con salario fijo mensual.
  * Extiende de {@link Empleado}.
@@ -35,7 +37,7 @@ public class EmpleadoFijo extends Empleado {
     // ── toString ───────────────────────────────────────────────────────────────
     @Override
     public String toString() {
-        return String.format("EmpleadoFijo{id=%d, nombre='%s', cargo='%s', salarioBase=%.2f}",
+        return String.format("Modelo.EmpleadoFijo{id=%d, nombre='%s', cargo='%s', salarioBase=%.2f}",
                 getId(), getNombre(), getCargo(), salarioBase);
     }
 }

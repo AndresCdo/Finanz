@@ -1,3 +1,5 @@
+package Modelo;
+
 /**
  * Representa un empleado que cobra según las horas trabajadas.
  * Extiende de {@link Empleado}.
@@ -42,7 +44,7 @@ public class EmpleadoPorHoras extends Empleado {
     @Override
     public String toString() {
         return String.format(
-                "EmpleadoPorHoras{id=%d, nombre='%s', cargo='%s', tarifaHora=%.2f, horas=%.1f, salario=%.2f}",
+                "Modelo.EmpleadoPorHoras{id=%d, nombre='%s', cargo='%s', tarifaHora=%.2f, horas=%.1f, salario=%.2f}",
                 getId(), getNombre(), getCargo(), tarifaHora, horasTrabajadas, calcularSalario());
     }
 }

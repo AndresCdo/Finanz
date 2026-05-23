@@ -1,7 +1,8 @@
+package Modelo;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Clase principal gestora del sistema Finanz.
@@ -28,7 +29,7 @@ public class Empresa {
     // ── Constructor ────────────────────────────────────────────────────────────
 
     /**
-     * Crea una nueva instancia de Empresa.
+     * Crea una nueva instancia de Modelo.Empresa.
      *
      * @param nombre nombre comercial de la empresa
      * @param nit    número de identificación tributaria
@@ -199,7 +200,7 @@ public class Empresa {
     // ── toString ───────────────────────────────────────────────────────────────
     @Override
     public String toString() {
-        return String.format("Empresa{nombre='%s', nit='%s', empleados=%d, transacciones=%d, balance=$%,.2f}",
+        return String.format("Modelo.Empresa{nombre='%s', nit='%s', empleados=%d, transacciones=%d, balance=$%,.2f}",
                 nombre, nit, empleados.size(), transacciones.size(), calcularBalance());
     }
 }

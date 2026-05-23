@@ -1,3 +1,5 @@
+package Modelo;
+
 import java.io.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -63,7 +65,7 @@ public class GestorArchivos {
                 bw.newLine();
             }
         }
-        System.out.println("[GestorArchivos] Empleados guardados en: " + ruta);
+        System.out.println("[Modelo.GestorArchivos] Empleados guardados en: " + ruta);
     }
 
     /** Sobrecarga que usa la ruta por defecto. */
@@ -111,12 +113,12 @@ public class GestorArchivos {
                         empleados.add(new EmpleadoPorHoras(id, nombre, documento, cargo,
                                 tarifaHora, horasTrabajadas));
                     }
-                    default -> System.err.println("[GestorArchivos] Tipo de empleado desconocido: " + tipo);
+                    default -> System.err.println("[Modelo.GestorArchivos] Tipo de empleado desconocido: " + tipo);
                 }
             }
         }
 
-        System.out.println("[GestorArchivos] " + empleados.size() + " empleados cargados desde: " + ruta);
+        System.out.println("[Modelo.GestorArchivos] " + empleados.size() + " empleados cargados desde: " + ruta);
         return empleados;
     }
 
@@ -152,7 +154,7 @@ public class GestorArchivos {
                 bw.newLine();
             }
         }
-        System.out.println("[GestorArchivos] Transacciones guardadas en: " + ruta);
+        System.out.println("[Modelo.GestorArchivos] Transacciones guardadas en: " + ruta);
     }
 
     /** Sobrecarga que usa la ruta por defecto. */
@@ -187,12 +189,12 @@ public class GestorArchivos {
                 switch (tipo) {
                     case "INGRESO" -> transacciones.add(new Ingreso(id, descripcion, monto, fecha, categoria));
                     case "GASTO"   -> transacciones.add(new Gasto(id, descripcion, monto, fecha, categoria));
-                    default        -> System.err.println("[GestorArchivos] Tipo de transacción desconocido: " + tipo);
+                    default        -> System.err.println("[Modelo.GestorArchivos] Tipo de transacción desconocido: " + tipo);
                 }
             }
         }
 
-        System.out.println("[GestorArchivos] " + transacciones.size() + " transacciones cargadas desde: " + ruta);
+        System.out.println("[Modelo.GestorArchivos] " + transacciones.size() + " transacciones cargadas desde: " + ruta);
         return transacciones;
     }
 
@@ -213,7 +215,7 @@ public class GestorArchivos {
     public static void guardarEmpresa(Empresa empresa) throws IOException {
         guardarEmpleados(empresa.getEmpleados());
         guardarTransacciones(empresa.getTransacciones());
-        System.out.println("[GestorArchivos] Empresa '" + empresa.getNombre() + "' guardada correctamente.");
+        System.out.println("[Modelo.GestorArchivos] Modelo.Empresa '" + empresa.getNombre() + "' guardada correctamente.");
     }
 
     /**
@@ -230,6 +232,6 @@ public class GestorArchivos {
         for (Empleado e : empleados)         empresa.agregarEmpleado(e);
         for (Transaccion t : transacciones)  empresa.agregarTransaccion(t);
 
-        System.out.println("[GestorArchivos] Datos cargados en empresa: " + empresa.getNombre());
+        System.out.println("[Modelo.GestorArchivos] Datos cargados en empresa: " + empresa.getNombre());
     }
 }

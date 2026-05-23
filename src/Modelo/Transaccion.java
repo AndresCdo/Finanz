@@ -1,3 +1,5 @@
+package Modelo;
+
 import java.time.LocalDate;
 
 /**
@@ -47,7 +49,7 @@ public abstract class Transaccion {
     // ── toString ───────────────────────────────────────────────────────────────
     @Override
     public String toString() {
-        return String.format("Transaccion{id=%d, descripcion='%s', monto=%.2f, fecha=%s, categoria='%s'}",
+        return String.format("Modelo.Transaccion{id=%d, descripcion='%s', monto=%.2f, fecha=%s, categoria='%s'}",
                 id, descripcion, monto, fecha, categoria);
     }
 }

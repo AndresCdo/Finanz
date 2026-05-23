@@ -1,3 +1,5 @@
+package Modelo;
+
 /**
  * Clase abstracta que representa un empleado dentro del sistema Finanz.
  * Sirve como base para los diferentes tipos de empleados de la empresa.
@@ -41,7 +43,7 @@ public abstract class Empleado {
     // ── toString ───────────────────────────────────────────────────────────────
     @Override
     public String toString() {
-        return String.format("Empleado{id=%d, nombre='%s', documento='%s', cargo='%s'}",
+        return String.format("Modelo.Empleado{id=%d, nombre='%s', documento='%s', cargo='%s'}",
                 id, nombre, documento, cargo);
     }
 }
