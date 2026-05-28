@@ -1,8 +1,0 @@
-# tipo,id,descripcion,monto,fecha(yyyy-MM-dd),categoria
-GASTO,4,Servicios públicos,320000.0,2026-05-15,Servicios
-INGRESO,6,Consultoría empresarial,8500000.0,2026-02-14,Servicios
-INGRESO,7,Mantenimiento mensual,3200000.0,2026-03-01,Servicios
-GASTO,8,Compra equipos,5800000.0,2026-02-20,Equipos
-GASTO,9,Papelería y suministros,120000.0,2026-03-10,Suministros
-INGRESO,10,Licencias de software,6000000.0,2026-03-20,Ventas
-GASTO,11,58,150000.0,2026-05-23,Marketing

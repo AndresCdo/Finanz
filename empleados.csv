@@ -1,4 +1,0 @@
-# tipo,id,nombre,documento,cargo,[salarioBase | tarifaHora,horasTrabajadas]
-HORAS,2,Oscar,52879568,Gerente,5000.0,100.0
-FIJO,3,Ana perez,105489502,Gerente,5000000.0
-FIJO,4,Juan Jose,10,Soy,2500000.0

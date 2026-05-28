@@ -1,0 +1,19 @@
+# ── Compilados ──────────────────────────────────────
+out/
+
+# ── Archivos de datos en runtime ───────────────────
+*.csv
+
+# ── IDE - IntelliJ IDEA ─────────────────────────────
+.idea/workspace.xml
+.idea/tasks/
+.idea/shelf/
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/httpRequests/
+.idea/*.xml
+
+# ── Sistema ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
