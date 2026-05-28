@@ -1,17 +1,20 @@
 # ── Compilados ──────────────────────────────────────
 out/
+*.class
 
-# ── Archivos de datos en runtime ───────────────────
-*.csv
+# ── Archivos de datos generados en runtime ─────────
+# Estos CSVs se regeneran ejecutando `Main.java`
+# Ver CLAUDE.md para instrucciones de compilación y ejecución.
+/empleados.csv
+/transacciones.csv
 
-# ── IDE - IntelliJ IDEA ─────────────────────────────
+# ── IDE - IntelliJ IDEA (solo estado local) ────────
 .idea/workspace.xml
 .idea/tasks/
 .idea/shelf/
 .idea/dataSources/
 .idea/dataSources.local.xml
 .idea/httpRequests/
-.idea/*.xml
 
 # ── Sistema ─────────────────────────────────────────
 .DS_Store
